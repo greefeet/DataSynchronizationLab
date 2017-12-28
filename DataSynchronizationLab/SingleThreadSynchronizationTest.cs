@@ -15,7 +15,7 @@ namespace DataSynchronizationLab
         public const int StorageInsertTime = 1;
         public const int Samping = 500;
         [TestMethod]
-        public async Task BlockThread_SimultaneousMessage()
+        public async Task BlockThread_SimultaneousMessageTest()
         {
             ResourceSingleThread Source = new ResourceSingleThread();
             ServiceSingleThread NodeA = new ServiceSingleThread(Source);
@@ -76,10 +76,11 @@ namespace DataSynchronizationLab
             Assert.AreEqual(ClientB1.DataStorages.Count, 2 + Samping + 2);
             Assert.AreEqual(ClientB2.DataStorages.Count, 2 + Samping + 2);
 
-            Console.WriteLine($"Storage Time            : {StorageInsertTime} ms");
+            Console.WriteLine($"BlockThread_SimultaneousMessageTest");
+            Console.WriteLine($"Storage Execute Time    : {StorageInsertTime} ms");
+            Console.WriteLine($"Sampling                : {Samping + 4} t");
             Console.WriteLine($"Prepairing Time         : {PrepairingTime.Elapsed.TotalMilliseconds} ms");
             Console.WriteLine($"Process Time            : {ProcessTime.Elapsed.TotalMilliseconds} ms");
-            Console.WriteLine($"Sampling Number         : {Samping + 4}");
             Console.WriteLine($"Transaction per Seconds : {(Samping + 4) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
 
             //Single Thread Synchronization
@@ -146,13 +147,7 @@ namespace DataSynchronizationLab
 
         public async Task AddObject(IHashObject DataObject) => await Source.AddQueueDataAsync(DataObject);
 
-        public void Boardcast(ILinkRowKey HashSync)
-        {
-            foreach (ClientSingleThread Client in Clients)
-            {
-                Client.CallbackHashSync(HashSync);
-            }
-        }
+        public void Boardcast(ILinkRowKey HashSync) => Parallel.ForEach(Clients, c => c.CallbackHashSync(HashSync));
     }
 
     public class ResourceSingleThread
@@ -233,13 +228,7 @@ namespace DataSynchronizationLab
         }
 
         private List<ServiceSingleThread> ServiceNodes { get; set; } = new List<ServiceSingleThread>();
-        private void NotifyHashSync(ILinkRowKey HashSync)
-        {
-            foreach (ServiceSingleThread s in ServiceNodes)
-            {
-                s.Boardcast(HashSync);
-            }
-        }
+        private void NotifyHashSync(ILinkRowKey HashSync) => Parallel.ForEach(ServiceNodes, s => s.Boardcast(HashSync));
         public void SubscribeResource(ServiceSingleThread Service)
         {
             if (!ServiceNodes.Any(s => s == Service)) ServiceNodes.Add(Service);
