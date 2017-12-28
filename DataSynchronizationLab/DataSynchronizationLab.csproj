@@ -48,7 +48,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="SingleThreadSynchronization.cs" />
+    <Compile Include="SingleThreadSynchronizationTest.cs" />
     <Compile Include="Model\DataObject.cs" />
     <Compile Include="Model\IClientHashCallback.cs" />
     <Compile Include="Model\IHashObject.cs" />

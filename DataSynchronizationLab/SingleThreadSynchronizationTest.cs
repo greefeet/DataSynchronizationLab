@@ -10,7 +10,7 @@ using DataSynchronizationLab.Model;
 namespace DataSynchronizationLab
 {
     [TestClass]
-    public class SingleThreadSynchronization
+    public class SingleThreadSynchronizationTest
     {
         public const int StorageInsertTime = 1;
         public const int Samping = 500;
@@ -223,7 +223,7 @@ namespace DataSynchronizationLab
                         }
 
                     }
-                    await Task.Delay(SingleThreadSynchronization.StorageInsertTime);
+                    await Task.Delay(SingleThreadSynchronizationTest.StorageInsertTime);
                 }
             }
             finally
