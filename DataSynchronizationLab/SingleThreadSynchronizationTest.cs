@@ -71,6 +71,8 @@ namespace DataSynchronizationLab
             await Task.WhenAll(Tasks.ToArray());
             ProcessTime.Stop();
 
+            Source.Dispose();
+
             Assert.AreEqual(ClientA1.DataStorages.Count, 2 + Samping + 2);
             Assert.AreEqual(ClientA2.DataStorages.Count, 2 + Samping + 2);
             Assert.AreEqual(ClientB1.DataStorages.Count, 2 + Samping + 2);
@@ -82,10 +84,6 @@ namespace DataSynchronizationLab
             Console.WriteLine($"Prepairing Time         : {PrepairingTime.Elapsed.TotalMilliseconds} ms");
             Console.WriteLine($"Process Time            : {ProcessTime.Elapsed.TotalMilliseconds} ms");
             Console.WriteLine($"Transaction per Seconds : {(Samping + 4) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
-
-            //Single Thread Synchronization
-            //1. to work with single thread to prevent conflick going to hte bottleneck at processing time, such as a storage execution
-            //2. if block thread is faulty, the data and operation will be extremely conflic
         }
     }
 
@@ -112,7 +110,7 @@ namespace DataSynchronizationLab
         {
             if (DataStorages.Count > 0)
             {
-                // Client จะยอมรับเฉพาะข้อมูลที่เชื่อมโยงกันเท่านั้น
+                // Only the link data will be accepted.
                 if (DataStorages.Last().RowKey == LinkRowKey.PreviousRowKey)
                 {
                     DataStorages.Add(LinkRowKey);
@@ -150,17 +148,19 @@ namespace DataSynchronizationLab
         public void Boardcast(ILinkRowKey HashSync) => Parallel.ForEach(Clients, c => c.CallbackHashSync(HashSync));
     }
 
-    public class ResourceSingleThread
+    public class ResourceSingleThread : IDisposable
     {
-        public Dictionary<int, IHashObject> Storage { get; set; } = new Dictionary<int, IHashObject>();
-        public List<ILinkRowKey> HashSync { get; set; } = new List<ILinkRowKey>();
+        public Dictionary<int, IHashObject> Storage = new Dictionary<int, IHashObject>();
+        public List<ILinkRowKey> HashSync = new List<ILinkRowKey>();
 
-        private Queue<IHashObject> ProofHashSync { get; set; } = new Queue<IHashObject>();
-
-        private SemaphoreSlim WaitingThread { get; set; } = new SemaphoreSlim(1);
+        private Queue<IHashObject> ProofHashSync = new Queue<IHashObject>();
+        private SemaphoreSlim WaitingThread = new SemaphoreSlim(1);
 
         private void StoreData(IHashObject Data)
         {
+            Storage.Add(Data.GetHashCode(), Data);
+            /*
+            // Check Equal Data (unnecessary)
             if (Storage.ContainsKey(Data.GetHashCode()))
             {
                 Storage[Data.GetHashCode()] = Data;
@@ -169,6 +169,7 @@ namespace DataSynchronizationLab
             {
                 Storage.Add(Data.GetHashCode(), Data);
             }
+            */
         }
         private async Task TriggerProofHash()
         {
@@ -184,7 +185,6 @@ namespace DataSynchronizationLab
                         var Data = ProofHashSync.Dequeue();
                         HashSync.Add(new LinkHashObject()
                         {
-                            HashObject = Data.GetHashCode(),
                             PreviousRowKey = "",
                             RowKey = ServiceKeyTime.Get()
                         });
@@ -199,13 +199,16 @@ namespace DataSynchronizationLab
                         var PreviousHashSync = HashSync.Last();
                         HashSync.Add(new LinkHashObject()
                         {
-                            HashObject = Data.GetHashCode(),
                             PreviousRowKey = PreviousHashSync.RowKey,
                             RowKey = ServiceKeyTime.Get()
                         });
 
                         // Validate and Notify
                         var NowHashSync = HashSync.Last();
+                        NotifyHashSync(NowHashSync);
+
+                        /*
+                        // Check Conflic (unnecessary)
                         if (NowHashSync.PreviousRowKey == PreviousHashSync.RowKey)
                         {
                             // Currect
@@ -216,7 +219,7 @@ namespace DataSynchronizationLab
                             // Incurrect need to Rollback
                             HashSync.RemoveAt(HashSync.Count - 1);
                         }
-
+                        */
                     }
                     await Task.Delay(SingleThreadSynchronizationTest.StorageInsertTime);
                 }
@@ -227,15 +230,11 @@ namespace DataSynchronizationLab
             }
         }
 
-        private List<ServiceSingleThread> ServiceNodes { get; set; } = new List<ServiceSingleThread>();
+        private List<ServiceSingleThread> ServiceNodes = new List<ServiceSingleThread>();
         private void NotifyHashSync(ILinkRowKey HashSync) => Parallel.ForEach(ServiceNodes, s => s.Boardcast(HashSync));
         public void SubscribeResource(ServiceSingleThread Service)
         {
             if (!ServiceNodes.Any(s => s == Service)) ServiceNodes.Add(Service);
-        }
-        public void Unsubscribe(ServiceSingleThread Service)
-        {
-            if (ServiceNodes.Any(s => s == Service)) ServiceNodes.Remove(Service);
         }
 
         public async Task AddQueueDataAsync(IHashObject Data)
@@ -243,6 +242,11 @@ namespace DataSynchronizationLab
             StoreData(Data);
             ProofHashSync.Enqueue(Data);
             await TriggerProofHash();
+        }
+        public void Dispose()
+        {
+            WaitingThread.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
