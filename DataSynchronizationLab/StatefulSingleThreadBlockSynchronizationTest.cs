@@ -4,14 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace DataSynchronizationLab
 {
     [TestClass]
-    public class SingleThreadBlockSynchronizationTest
+    public class StatefulSingleThreadBlockSynchronizationTest
     {
         public const int StorageReadTime_ms = 10;
         public const int StorageWriteTime_ms = 40;
@@ -19,17 +18,18 @@ namespace DataSynchronizationLab
         public const int BlockSize = 100;
 
         [TestMethod]
-        public async Task SingleThread_Block_SimultaneousMessageTest()
+        public async Task StatefulSingleThreadBlockSynchronization()
         {
-            ResourceSingleThreadBlock Source = new ResourceSingleThreadBlock();
-            ServiceSingleThreadBlock NodeA = new ServiceSingleThreadBlock(Source);
-            ServiceSingleThreadBlock NodeB = new ServiceSingleThreadBlock(Source);
+            StatfulResourceSingleThreadBlock Source = new StatfulResourceSingleThreadBlock();
 
-            ClientSingleThreadBlock ClientA1 = new ClientSingleThreadBlock(NodeA) { KeyName = nameof(ClientA1) };
-            ClientSingleThreadBlock ClientA2 = new ClientSingleThreadBlock(NodeA) { KeyName = nameof(ClientA2) };
+            IService NodeA = new SimpleService(Source);
+            IService NodeB = new SimpleService(Source);
 
-            ClientSingleThreadBlock ClientB1 = new ClientSingleThreadBlock(NodeB) { KeyName = nameof(ClientB1) };
-            ClientSingleThreadBlock ClientB2 = new ClientSingleThreadBlock(NodeB) { KeyName = nameof(ClientB2) };
+            IClient ClientA1 = new SimpleClient(NodeA) { KeyName = nameof(ClientA1) };
+            IClient ClientA2 = new SimpleClient(NodeA) { KeyName = nameof(ClientA2) };
+
+            IClient ClientB1 = new SimpleClient(NodeB) { KeyName = nameof(ClientB1) };
+            IClient ClientB2 = new SimpleClient(NodeB) { KeyName = nameof(ClientB2) };
 
             Stopwatch PrepairingTime = new Stopwatch();
             PrepairingTime.Start();
@@ -68,79 +68,20 @@ namespace DataSynchronizationLab
             Assert.AreEqual(ClientB1.DataStorages.Count, Samping);
             Assert.AreEqual(ClientB2.DataStorages.Count, Samping);
 
-            Console.WriteLine($"SingleThread_Block_SimultaneousMessageTest");
+            Console.WriteLine($"StatefulSingleThreadBlockSynchronization");
             Console.WriteLine($"Storage Read Time       : {StorageReadTime_ms} ms");
             Console.WriteLine($"Storage Write Time      : {StorageWriteTime_ms} ms");
             Console.WriteLine($"Block Size              : {BlockSize} t");
-            Console.WriteLine($"Sampling                : {Samping + 4} t");
+            Console.WriteLine($"Sampling                : {Samping} t");
             Console.WriteLine($"Prepairing Time         : {PrepairingTime.Elapsed.TotalMilliseconds / 1000} s");
             Console.WriteLine($"Process Time            : {ProcessTime.Elapsed.TotalMilliseconds / 1000} s");
-            Console.WriteLine($"Transaction per Seconds : {(Samping + 4) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
+            Console.WriteLine($"Transaction per Seconds : {(Samping) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
+            Console.WriteLine($"Client Receive          : {ClientA1.DataStorages.Count}, {ClientA2.DataStorages.Count}, {ClientB1.DataStorages.Count}, {ClientB2.DataStorages.Count}");
+            Console.WriteLine($"Client Conflic          : {ClientA1.Conflic}, {ClientA2.Conflic}, {ClientB1.Conflic}, {ClientB2.Conflic}");
         }
     }
 
-    public class ClientSingleThreadBlock : IClientHashCallback
-    {
-        public string KeyName { get; set; }
-        public List<ILinkRowKey> DataStorages { get; set; } = new List<ILinkRowKey>();
-        public override int GetHashCode()
-        {
-            return new { KeyName }.GetHashCode();
-        }
-
-
-        public async Task AddObject(IHashObject dataObject) => await Server.AddObject(dataObject);
-
-        private ServiceSingleThreadBlock Server { get; set; }
-        public ClientSingleThreadBlock(ServiceSingleThreadBlock Server)
-        {
-            this.Server = Server;
-            this.Server.SubscribeService(this);
-        }
-
-        public void CallbackHashSync(ILinkRowKey LinkRowKey)
-        {
-            if (DataStorages.Count > 0)
-            {
-                // Only the link data will be accepted.
-                if (DataStorages.Last().RowKey == LinkRowKey.PreviousRowKey)
-                {
-                    DataStorages.Add(LinkRowKey);
-                }
-            }
-            else
-            {
-                DataStorages = new List<ILinkRowKey>() { LinkRowKey };
-            }
-        }
-    }
-
-    public class ServiceSingleThreadBlock
-    {
-        private ResourceSingleThreadBlock Source { get; set; }
-        private List<IClientHashCallback> Clients { get; set; }
-
-        public ServiceSingleThreadBlock(ResourceSingleThreadBlock Source)
-        {
-            this.Source = Source;
-            this.Source.SubscribeResource(this);
-            Clients = new List<IClientHashCallback>();
-        }
-
-        public void SubscribeService(IClientHashCallback Client)
-        {
-            if (!Clients.Any(c => c.GetHashCode() == Client.GetHashCode()))
-            {
-                Clients.Add(Client);
-            }
-        }
-
-        public async Task AddObject(IHashObject DataObject) => await Source.AddQueueDataAsync(DataObject);
-
-        public void Boardcast(ILinkRowKey HashSync) => Parallel.ForEach(Clients, c => c.CallbackHashSync(HashSync));
-    }
-
-    public class ResourceSingleThreadBlock : IDisposable
+    public class StatfulResourceSingleThreadBlock : IResourceSimple, IDisposable
     {
         public Dictionary<int, IHashObject> Storage = new Dictionary<int, IHashObject>();
         public List<ILinkRowKey> HashSync = new List<ILinkRowKey>();
@@ -195,7 +136,7 @@ namespace DataSynchronizationLab
                         var PreviousHashSync = HashSync.Last();
 
                         // Delay Read from Storage
-                        await Task.Delay(SingleThreadSynchronizationTest.StorageReadTime_ms);
+                        await Task.Delay(TestParameter.StorageReadTime_ms);
 
                         HashSync.Add(new LinkHashObject()
                         {
@@ -223,10 +164,10 @@ namespace DataSynchronizationLab
                     }
                     // Delay Write to Storage
                     
-                    if(CounterSimBlock >= SingleThreadBlockSynchronizationTest.BlockSize)
+                    if(CounterSimBlock >= StatefulSingleThreadBlockSynchronizationTest.BlockSize)
                     {
                         CounterSimBlock = 0;
-                        await Task.Delay(SingleThreadSynchronizationTest.StorageWriteTime_ms);
+                        await Task.Delay(TestParameter.StorageWriteTime_ms);
                     }
                 }
             }
@@ -236,9 +177,9 @@ namespace DataSynchronizationLab
             }
         }
 
-        private List<ServiceSingleThreadBlock> ServiceNodes = new List<ServiceSingleThreadBlock>();
+        private List<IService> ServiceNodes = new List<IService>();
         private void NotifyHashSync(ILinkRowKey HashSync) => Parallel.ForEach(ServiceNodes, s => s.Boardcast(HashSync));
-        public void SubscribeResource(ServiceSingleThreadBlock Service)
+        public void SubscribeResource(IService Service)
         {
             if (!ServiceNodes.Any(s => s == Service)) ServiceNodes.Add(Service);
         }

@@ -48,17 +48,22 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConflickSynChronizationTest.cs" />
+    <Compile Include="Model\SimpleClient.cs" />
+    <Compile Include="Model\IResourceSimple.cs" />
+    <Compile Include="Model\IService.cs" />
+    <Compile Include="Model\SimpleService.cs" />
+    <Compile Include="StatelessConflickSynchronizationTest.cs" />
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="SingleThreadBlockSynchronizationTest.cs" />
-    <Compile Include="SingleThreadSynchronizationTest.cs" />
+    <Compile Include="StatefulSingleThreadBlockSynchronizationTest.cs" />
+    <Compile Include="StatefulSingleThreadSynchronizationTest.cs" />
     <Compile Include="Model\DataObject.cs" />
-    <Compile Include="Model\IClientHashCallback.cs" />
+    <Compile Include="Model\IClient.cs" />
     <Compile Include="Model\IHashObject.cs" />
     <Compile Include="Model\ILinkRowKey.cs" />
     <Compile Include="Model\LinkHashObject.cs" />
     <Compile Include="Model\ServiceKeyTime.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestParameter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
