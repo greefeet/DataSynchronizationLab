@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="ConflickSynChronizationTest.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="SingleThreadBlockSynchronizationTest.cs" />
     <Compile Include="SingleThreadSynchronizationTest.cs" />
     <Compile Include="Model\DataObject.cs" />
     <Compile Include="Model\IClientHashCallback.cs" />

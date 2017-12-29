@@ -12,8 +12,10 @@ namespace DataSynchronizationLab
     [TestClass]
     public class SingleThreadSynchronizationTest
     {
-        public const int StorageInsertTime = 1;
-        public const int Samping = 500;
+        public const int StorageReadTime_ms = 10;
+        public const int StorageWriteTime_ms = 40;
+        public const int Samping = 100;
+
         [TestMethod]
         public async Task BlockThread_SimultaneousMessageTest()
         {
@@ -79,10 +81,11 @@ namespace DataSynchronizationLab
             Assert.AreEqual(ClientB2.DataStorages.Count, 2 + Samping + 2);
 
             Console.WriteLine($"BlockThread_SimultaneousMessageTest");
-            Console.WriteLine($"Storage Execute Time    : {StorageInsertTime} ms");
+            Console.WriteLine($"Storage Read Time       : {StorageReadTime_ms} ms");
+            Console.WriteLine($"Storage Write Time      : {StorageWriteTime_ms} ms");
             Console.WriteLine($"Sampling                : {Samping + 4} t");
-            Console.WriteLine($"Prepairing Time         : {PrepairingTime.Elapsed.TotalMilliseconds} ms");
-            Console.WriteLine($"Process Time            : {ProcessTime.Elapsed.TotalMilliseconds} ms");
+            Console.WriteLine($"Prepairing Time         : {PrepairingTime.Elapsed.TotalMilliseconds/1000} s");
+            Console.WriteLine($"Process Time            : {ProcessTime.Elapsed.TotalMilliseconds / 1000} s");
             Console.WriteLine($"Transaction per Seconds : {(Samping + 4) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
         }
     }
@@ -197,6 +200,10 @@ namespace DataSynchronizationLab
                         // Add Data
                         var Data = ProofHashSync.Dequeue();
                         var PreviousHashSync = HashSync.Last();
+
+                        // Delay Read from Storage
+                        await Task.Delay(SingleThreadSynchronizationTest.StorageReadTime_ms);
+
                         HashSync.Add(new LinkHashObject()
                         {
                             PreviousRowKey = PreviousHashSync.RowKey,
@@ -221,7 +228,8 @@ namespace DataSynchronizationLab
                         }
                         */
                     }
-                    await Task.Delay(SingleThreadSynchronizationTest.StorageInsertTime);
+                    // Delay Write to Storage
+                    await Task.Delay(SingleThreadSynchronizationTest.StorageWriteTime_ms);
                 }
             }
             finally
