@@ -14,10 +14,10 @@ namespace DataSynchronizationLab
     {
         public const int StorageReadTime_ms = 10;
         public const int StorageWriteTime_ms = 40;
-        public const int Samping = 100;
+        public const int Samping = 500;
 
         [TestMethod]
-        public async Task BlockThread_SimultaneousMessageTest()
+        public async Task SingleThread_SimultaneousMessageTest()
         {
             ResourceSingleThread Source = new ResourceSingleThread();
             ServiceSingleThread NodeA = new ServiceSingleThread(Source);
@@ -80,7 +80,7 @@ namespace DataSynchronizationLab
             Assert.AreEqual(ClientB1.DataStorages.Count, 2 + Samping + 2);
             Assert.AreEqual(ClientB2.DataStorages.Count, 2 + Samping + 2);
 
-            Console.WriteLine($"BlockThread_SimultaneousMessageTest");
+            Console.WriteLine($"SingleThread_SimultaneousMessageTest");
             Console.WriteLine($"Storage Read Time       : {StorageReadTime_ms} ms");
             Console.WriteLine($"Storage Write Time      : {StorageWriteTime_ms} ms");
             Console.WriteLine($"Sampling                : {Samping + 4} t");

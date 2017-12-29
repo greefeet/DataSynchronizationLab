@@ -12,19 +12,32 @@ Single thread read/write storage
 ### Sample Results :
 
 ```
-BlockThread_SimultaneousMessageTest
+SingleThread_SimultaneousMessageTest
 Storage Read Time       : 10 ms
 Storage Write Time      : 40 ms
-Sampling                : 104 t
-Prepairing Time         : 0.0014542 s
-Process Time            : 6.3844561 s
-Transaction per Seconds : 16.2895630216644 t/s
+Sampling                : 504 t
+Prepairing Time         : 0.005569 s
+Process Time            : 31.3865214 s
+Transaction per Seconds : 16.0578483221145 t/s
 ```
 
 ## Single Thread with Block Synchronization
 
 ### Abstract
 Single thread read and use block to store to reduce write time
+
+### Sample Results :
+
+```
+SingleThread_Block_SimultaneousMessageTest
+Storage Read Time       : 10 ms
+Storage Write Time      : 40 ms
+Block Size              : 100 t
+Sampling                : 504 t
+Prepairing Time         : 0.007273 s
+Process Time            : 8.0311751 s
+Transaction per Seconds : 62.755449074943 t/s
+```
 
 ## Alternative Algorithm
 -
