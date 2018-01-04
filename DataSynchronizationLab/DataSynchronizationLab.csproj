@@ -46,12 +46,15 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Model\SimpleClient.cs" />
     <Compile Include="Model\IResourceSimple.cs" />
     <Compile Include="Model\IService.cs" />
     <Compile Include="Model\SimpleService.cs" />
+    <Compile Include="SperateHashStorageSynchronizationTest.cs" />
+    <Compile Include="SplitePerformanceTest.cs" />
     <Compile Include="StatelessConflickSynchronizationTest.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="StatefulSingleThreadBlockSynchronizationTest.cs" />

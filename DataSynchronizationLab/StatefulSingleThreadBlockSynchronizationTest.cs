@@ -12,10 +12,6 @@ namespace DataSynchronizationLab
     [TestClass]
     public class StatefulSingleThreadBlockSynchronizationTest
     {
-        public const int StorageReadTime_ms = 10;
-        public const int StorageWriteTime_ms = 40;
-        public const int Samping = 500;
-        public const int BlockSize = 100;
 
         [TestMethod]
         public async Task StatefulSingleThreadBlockSynchronization()
@@ -34,7 +30,7 @@ namespace DataSynchronizationLab
             Stopwatch PrepairingTime = new Stopwatch();
             PrepairingTime.Start();
             List<Task> Tasks = new List<Task>();
-            for (int i = 0; i < Samping; i++)
+            for (int i = 0; i < TestParameter.Samping; i++)
             {
                 switch (i % 4)
                 {
@@ -63,19 +59,19 @@ namespace DataSynchronizationLab
 
             Source.Dispose();
 
-            Assert.AreEqual(ClientA1.DataStorages.Count, Samping);
-            Assert.AreEqual(ClientA2.DataStorages.Count, Samping);
-            Assert.AreEqual(ClientB1.DataStorages.Count, Samping);
-            Assert.AreEqual(ClientB2.DataStorages.Count, Samping);
+            Assert.AreEqual(ClientA1.DataStorages.Count, TestParameter.Samping);
+            Assert.AreEqual(ClientA2.DataStorages.Count, TestParameter.Samping);
+            Assert.AreEqual(ClientB1.DataStorages.Count, TestParameter.Samping);
+            Assert.AreEqual(ClientB2.DataStorages.Count, TestParameter.Samping);
 
             Console.WriteLine($"StatefulSingleThreadBlockSynchronization");
-            Console.WriteLine($"Storage Read Time       : {StorageReadTime_ms} ms");
-            Console.WriteLine($"Storage Write Time      : {StorageWriteTime_ms} ms");
-            Console.WriteLine($"Block Size              : {BlockSize} t");
-            Console.WriteLine($"Sampling                : {Samping} t");
+            Console.WriteLine($"Storage Read Time       : {TestParameter.StorageReadTime_ms} ms");
+            Console.WriteLine($"Storage Write Time      : {TestParameter.StorageWriteTime_ms} ms");
+            Console.WriteLine($"Block Size              : {TestParameter.BlockSize} t");
+            Console.WriteLine($"Sampling                : {TestParameter.Samping} t");
             Console.WriteLine($"Prepairing Time         : {PrepairingTime.Elapsed.TotalMilliseconds / 1000} s");
             Console.WriteLine($"Process Time            : {ProcessTime.Elapsed.TotalMilliseconds / 1000} s");
-            Console.WriteLine($"Transaction per Seconds : {(Samping) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
+            Console.WriteLine($"Transaction per Seconds : {(TestParameter.Samping) / (ProcessTime.Elapsed.TotalMilliseconds / 1000) } t/s");
             Console.WriteLine($"Client Receive          : {ClientA1.DataStorages.Count}, {ClientA2.DataStorages.Count}, {ClientB1.DataStorages.Count}, {ClientB2.DataStorages.Count}");
             Console.WriteLine($"Client Conflic          : {ClientA1.Conflic}, {ClientA2.Conflic}, {ClientB1.Conflic}, {ClientB2.Conflic}");
         }
@@ -164,7 +160,7 @@ namespace DataSynchronizationLab
                     }
                     // Delay Write to Storage
                     
-                    if(CounterSimBlock >= StatefulSingleThreadBlockSynchronizationTest.BlockSize)
+                    if(CounterSimBlock >= TestParameter.BlockSize)
                     {
                         CounterSimBlock = 0;
                         await Task.Delay(TestParameter.StorageWriteTime_ms);
